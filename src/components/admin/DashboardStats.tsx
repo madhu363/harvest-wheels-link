@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Booking } from '@/types';
-import { Users, Truck, Calendar, DollarSign } from 'lucide-react';
+import { Users, Truck, Calendar, DollarSign, Clock } from 'lucide-react';
 
 export const DashboardStats: React.FC = () => {
   const [stats, setStats] = useState({
