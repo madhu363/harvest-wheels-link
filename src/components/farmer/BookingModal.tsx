@@ -16,7 +16,7 @@ interface BookingModalProps {
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     date: '',
@@ -29,13 +29,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) return;
+    if (!user || !profile) return;
 
     const newBooking: Booking = {
       id: Date.now().toString(),
       farmerId: user.id,
       vehicleId: vehicle.id,
-      farmerName: user.name,
+      farmerName: profile.name,
       vehicleName: vehicle.name,
       date: formData.date,
       time: formData.time,

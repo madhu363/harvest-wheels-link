@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (error) {
                 console.error('Error fetching profile:', error);
               } else if (profileData) {
-                setProfile(profileData);
+                setProfile(profileData as Profile);
                 setUser({ ...session.user, role: profileData.role });
               }
             } catch (error) {
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (error) {
               console.error('Error fetching profile:', error);
             } else if (profileData) {
-              setProfile(profileData);
+              setProfile(profileData as Profile);
               setUser({ ...session.user, role: profileData.role });
             }
           } catch (error) {
