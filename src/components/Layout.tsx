@@ -10,7 +10,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, title }) => {
-  const { user, logout } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -30,19 +30,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, title }) => {
               <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
             </div>
             
-            {user && (
+            {user && profile && (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <User className="h-5 w-5 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">{user.name}</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                    {user.role.replace('_', ' ').toUpperCase()}
+                  <span className="text-sm font-medium text-gray-700">{profile.name}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(profile.role)}`}>
+                    {profile.role.replace('_', ' ').toUpperCase()}
                   </span>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={logout}
+                  onClick={signOut}
                   className="flex items-center space-x-1"
                 >
                   <LogOut className="h-4 w-4" />

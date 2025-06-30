@@ -36,6 +36,17 @@ export interface Booking {
   notes?: string;
 }
 
+export interface Profile {
+  id: string;
+  email: string;
+  name: string;
+  role: 'farmer' | 'vehicle_owner' | 'admin';
+  phone?: string;
+  location?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
