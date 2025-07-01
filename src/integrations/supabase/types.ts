@@ -9,38 +9,166 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          created_at: string
+          date: string
+          duration: number
+          farmer_id: string
+          field_location: string
+          id: string
+          notes: string | null
+          status: string
+          task: Database["public"]["Enums"]["task_type"]
+          time: string
+          total_amount: number
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          duration: number
+          farmer_id: string
+          field_location: string
+          id?: string
+          notes?: string | null
+          status?: string
+          task: Database["public"]["Enums"]["task_type"]
+          time: string
+          total_amount: number
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          duration?: number
+          farmer_id?: string
+          field_location?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          task?: Database["public"]["Enums"]["task_type"]
+          time?: string
+          total_amount?: number
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          address: string | null
           created_at: string
           email: string
           id: string
+          license_number: string | null
           location: string | null
+          mobile_number: string | null
           name: string
           phone: string | null
+          photo_url: string | null
           role: string
+          updated_at: string
+          vehicle_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email: string
+          id: string
+          license_number?: string | null
+          location?: string | null
+          mobile_number?: string | null
+          name: string
+          phone?: string | null
+          photo_url?: string | null
+          role: string
+          updated_at?: string
+          vehicle_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          license_number?: string | null
+          location?: string | null
+          mobile_number?: string | null
+          name?: string
+          phone?: string | null
+          photo_url?: string | null
+          role?: string
+          updated_at?: string
+          vehicle_number?: string | null
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean
+          location: string
+          name: string
+          owner_id: string
+          price_per_hour: number
+          type: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          email: string
-          id: string
-          location?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          location: string
           name: string
-          phone?: string | null
-          role: string
+          owner_id: string
+          price_per_hour: number
+          type: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          email?: string
+          description?: string | null
           id?: string
-          location?: string | null
+          image_url?: string | null
+          is_available?: boolean
+          location?: string
           name?: string
-          phone?: string | null
-          role?: string
+          owner_id?: string
+          price_per_hour?: number
+          type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -50,7 +178,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      task_type:
+        | "ploughing"
+        | "sowing"
+        | "harvesting"
+        | "manuring"
+        | "cultivation"
+        | "irrigation"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -165,6 +300,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      task_type: [
+        "ploughing",
+        "sowing",
+        "harvesting",
+        "manuring",
+        "cultivation",
+        "irrigation",
+        "other",
+      ],
+    },
   },
 } as const

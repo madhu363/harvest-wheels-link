@@ -29,7 +29,8 @@ export interface Booking {
   date: string;
   time: string;
   duration: number;
-  location: string;
+  fieldLocation: string;
+  task: 'ploughing' | 'sowing' | 'harvesting' | 'manuring' | 'cultivation' | 'irrigation' | 'other';
   status: 'pending' | 'accepted' | 'rejected' | 'completed';
   totalAmount: number;
   createdAt: string;
@@ -43,6 +44,11 @@ export interface Profile {
   role: 'farmer' | 'vehicle_owner' | 'admin';
   phone?: string;
   location?: string;
+  address?: string;
+  mobile_number?: string;
+  license_number?: string;
+  vehicle_number?: string;
+  photo_url?: string;
   created_at: string;
   updated_at: string;
 }

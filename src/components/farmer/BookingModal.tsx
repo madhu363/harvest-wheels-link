@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
-import { Vehicle, Booking } from '@/types';
+import { Vehicle } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { X, Calendar, Clock, MapPin } from 'lucide-react';
 
 interface BookingModalProps {
@@ -18,46 +20,95 @@ interface BookingModalProps {
 export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onClose }) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     date: '',
     time: '',
     duration: 1,
-    location: '',
+    fieldLocation: '',
+    task: '',
     notes: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const taskOptions = [
+    { value: 'ploughing', label: 'Ploughing' },
+    { value: 'sowing', label: 'Sowing' },
+    { value: 'harvesting', label: 'Harvesting' },
+    { value: 'manuring', label: 'Manuring' },
+    { value: 'cultivation', label: 'Cultivation' },
+    { value: 'irrigation', label: 'Irrigation' },
+    { value: 'other', label: 'Other' }
+  ];
+
+  const sendSMSNotification = async (vehicleOwnerPhone: string, bookingDetails: any) => {
+    try {
+      const message = `New booking request for ${vehicle.name}!\nFarmer: ${profile?.name}\nTask: ${bookingDetails.task}\nDate: ${bookingDetails.date} at ${bookingDetails.time}\nLocation: ${bookingDetails.fieldLocation}\nDuration: ${bookingDetails.duration} hours`;
+      
+      await supabase.functions.invoke('send-sms', {
+        body: {
+          to: vehicleOwnerPhone,
+          message: message
+        }
+      });
+    } catch (error) {
+      console.error('Failed to send SMS:', error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user || !profile) return;
 
-    const newBooking: Booking = {
-      id: Date.now().toString(),
-      farmerId: user.id,
-      vehicleId: vehicle.id,
-      farmerName: profile.name,
-      vehicleName: vehicle.name,
-      date: formData.date,
-      time: formData.time,
-      duration: formData.duration,
-      location: formData.location,
-      status: 'pending',
-      totalAmount: vehicle.pricePerHour * formData.duration,
-      createdAt: new Date().toISOString(),
-      notes: formData.notes
-    };
+    setIsLoading(true);
+    try {
+      // Get vehicle owner's mobile number
+      const { data: vehicleOwner } = await supabase
+        .from('profiles')
+        .select('mobile_number, name')
+        .eq('id', vehicle.ownerId)
+        .single();
 
-    // Save to localStorage for demo
-    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    existingBookings.push(newBooking);
-    localStorage.setItem('bookings', JSON.stringify(existingBookings));
+      const bookingData = {
+        farmer_id: user.id,
+        vehicle_id: vehicle.id,
+        date: formData.date,
+        time: formData.time,
+        duration: formData.duration,
+        field_location: formData.fieldLocation,
+        task: formData.task as any,
+        total_amount: vehicle.pricePerHour * formData.duration,
+        notes: formData.notes,
+        status: 'pending'
+      };
 
-    toast({
-      title: "Booking Request Sent",
-      description: "Your booking request has been sent to the vehicle owner for approval.",
-    });
+      const { error } = await supabase
+        .from('bookings')
+        .insert([bookingData]);
 
-    onClose();
+      if (error) throw error;
+
+      // Send SMS notification to vehicle owner
+      if (vehicleOwner?.mobile_number) {
+        await sendSMSNotification(vehicleOwner.mobile_number, formData);
+      }
+
+      toast({
+        title: "Booking Request Sent",
+        description: "Your booking request has been sent to the vehicle owner. They will be notified via SMS.",
+      });
+
+      onClose();
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create booking. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string | number) => {
@@ -90,7 +141,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date">Date *</Label>
               <Input
                 id="date"
                 type="date"
@@ -101,7 +152,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
               />
             </div>
             <div>
-              <Label htmlFor="time">Time</Label>
+              <Label htmlFor="time">Time *</Label>
               <Input
                 id="time"
                 type="time"
@@ -113,7 +164,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
           </div>
 
           <div>
-            <Label htmlFor="duration">Duration (hours)</Label>
+            <Label htmlFor="duration">Duration (hours) *</Label>
             <Input
               id="duration"
               type="number"
@@ -126,14 +177,30 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
           </div>
 
           <div>
-            <Label htmlFor="location">Your Location</Label>
+            <Label htmlFor="fieldLocation">Field Location *</Label>
             <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
-              placeholder="Enter your farm location"
+              id="fieldLocation"
+              value={formData.fieldLocation}
+              onChange={(e) => handleInputChange('fieldLocation', e.target.value)}
+              placeholder="Enter your field location"
               required
             />
+          </div>
+
+          <div>
+            <Label htmlFor="task">Task *</Label>
+            <Select value={formData.task} onValueChange={(value) => handleInputChange('task', value)} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select the task" />
+              </SelectTrigger>
+              <SelectContent>
+                {taskOptions.map((task) => (
+                  <SelectItem key={task.value} value={task.value}>
+                    {task.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -163,8 +230,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Send Booking Request
+            <Button type="submit" className="flex-1" disabled={isLoading}>
+              {isLoading ? 'Sending...' : 'Send Booking Request'}
             </Button>
           </div>
         </form>
