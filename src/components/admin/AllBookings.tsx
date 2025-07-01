@@ -58,7 +58,7 @@ export const AllBookings: React.FC = () => {
                   </div>
                   <div className="flex items-center">
                     <MapPin className="h-4 w-4 mr-1" />
-                    {booking.location}
+                    {booking.fieldLocation}
                   </div>
                   <div className="flex items-center">
                     <DollarSign className="h-4 w-4 mr-1" />
