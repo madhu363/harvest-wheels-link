@@ -26,6 +26,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
     time: '',
     duration: 1,
     fieldLocation: '',
+    fieldCoordinates: { lat: 0, lng: 0 },
     task: '',
     notes: ''
   });
@@ -39,6 +40,32 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
     { value: 'irrigation', label: 'Irrigation' },
     { value: 'other', label: 'Other' }
   ];
+
+  const handleLocationSelect = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setFormData(prev => ({
+            ...prev,
+            fieldCoordinates: { lat: latitude, lng: longitude },
+            fieldLocation: `Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+          }));
+          toast({
+            title: "Location Selected",
+            description: "Your current location has been set as the field location.",
+          });
+        },
+        (error) => {
+          toast({
+            title: "Location Error",
+            description: "Unable to get your location. Please enter manually.",
+            variant: "destructive",
+          });
+        }
+      );
+    }
+  };
 
   const sendSMSNotification = async (vehicleOwnerPhone: string, bookingDetails: any) => {
     try {
@@ -62,7 +89,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
     setIsLoading(true);
     try {
-      // Get vehicle owner's mobile number
       const { data: vehicleOwner } = await supabase
         .from('profiles')
         .select('mobile_number, name')
@@ -88,7 +114,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
       if (error) throw error;
 
-      // Send SMS notification to vehicle owner
       if (vehicleOwner?.mobile_number) {
         await sendSMSNotification(vehicleOwner.mobile_number, formData);
       }
@@ -178,13 +203,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
           <div>
             <Label htmlFor="fieldLocation">Field Location *</Label>
-            <Input
-              id="fieldLocation"
-              value={formData.fieldLocation}
-              onChange={(e) => handleInputChange('fieldLocation', e.target.value)}
-              placeholder="Enter your field location"
-              required
-            />
+            <div className="flex gap-2">
+              <Input
+                id="fieldLocation"
+                value={formData.fieldLocation}
+                onChange={(e) => handleInputChange('fieldLocation', e.target.value)}
+                placeholder="Enter your field location or use GPS"
+                required
+              />
+              <Button type="button" onClick={handleLocationSelect} variant="outline" size="sm">
+                <MapPin className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Click the location icon to use your current GPS location</p>
           </div>
 
           <div>
