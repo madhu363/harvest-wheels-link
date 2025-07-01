@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { X, Calendar, Clock, MapPin } from 'lucide-react';
+import { MapLocationPicker } from './MapLocationPicker';
 
 interface BookingModalProps {
   vehicle: Vehicle;
@@ -21,6 +22,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [useMapLocation, setUseMapLocation] = useState(false);
   const [formData, setFormData] = useState({
     date: '',
     time: '',
@@ -41,45 +43,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
     { value: 'other', label: 'Other' }
   ];
 
-  const handleLocationSelect = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setFormData(prev => ({
-            ...prev,
-            fieldCoordinates: { lat: latitude, lng: longitude },
-            fieldLocation: `Location: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-          }));
-          toast({
-            title: "Location Selected",
-            description: "Your current location has been set as the field location.",
-          });
-        },
-        (error) => {
-          toast({
-            title: "Location Error",
-            description: "Unable to get your location. Please enter manually.",
-            variant: "destructive",
-          });
-        }
-      );
-    }
-  };
-
-  const sendSMSNotification = async (vehicleOwnerPhone: string, bookingDetails: any) => {
-    try {
-      const message = `New booking request for ${vehicle.name}!\nFarmer: ${profile?.name}\nTask: ${bookingDetails.task}\nDate: ${bookingDetails.date} at ${bookingDetails.time}\nLocation: ${bookingDetails.fieldLocation}\nDuration: ${bookingDetails.duration} hours`;
-      
-      await supabase.functions.invoke('send-sms', {
-        body: {
-          to: vehicleOwnerPhone,
-          message: message
-        }
-      });
-    } catch (error) {
-      console.error('Failed to send SMS:', error);
-    }
+  const handleLocationSelect = (location: { address: string; lat: number; lng: number }) => {
+    setFormData(prev => ({
+      ...prev,
+      fieldLocation: location.address,
+      fieldCoordinates: { lat: location.lat, lng: location.lng }
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,6 +58,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
     setIsLoading(true);
     try {
+      // Get vehicle owner details for SMS notification
       const { data: vehicleOwner } = await supabase
         .from('profiles')
         .select('mobile_number, name')
@@ -114,8 +84,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
       if (error) throw error;
 
+      // Send SMS notification to vehicle owner
       if (vehicleOwner?.mobile_number) {
-        await sendSMSNotification(vehicleOwner.mobile_number, formData);
+        try {
+          await supabase.functions.invoke('send-sms', {
+            body: {
+              to: vehicleOwner.mobile_number,
+              message: `New booking request for ${vehicle.name}!\n\nFarmer: ${profile?.name}\nTask: ${formData.task}\nDate: ${formData.date} at ${formData.time}\nLocation: ${formData.fieldLocation}\nDuration: ${formData.duration} hours\nAmount: $${vehicle.pricePerHour * formData.duration}\n\nPlease check your dashboard to accept or reject this request.`
+            }
+          });
+        } catch (smsError) {
+          console.error('Failed to send SMS to vehicle owner:', smsError);
+        }
       }
 
       toast({
@@ -124,6 +104,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
       });
 
       onClose();
+      
+      // Reset form
+      setFormData({
+        date: '',
+        time: '',
+        duration: 1,
+        fieldLocation: '',
+        fieldCoordinates: { lat: 0, lng: 0 },
+        task: '',
+        notes: ''
+      });
+      setUseMapLocation(false);
     } catch (error) {
       console.error('Error creating booking:', error);
       toast({
@@ -144,7 +136,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
           <h3 className="text-lg font-semibold">Book {vehicle.name}</h3>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -202,20 +194,37 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
           </div>
 
           <div>
-            <Label htmlFor="fieldLocation">Field Location *</Label>
-            <div className="flex gap-2">
-              <Input
-                id="fieldLocation"
-                value={formData.fieldLocation}
-                onChange={(e) => handleInputChange('fieldLocation', e.target.value)}
-                placeholder="Enter your field location or use GPS"
-                required
-              />
-              <Button type="button" onClick={handleLocationSelect} variant="outline" size="sm">
-                <MapPin className="h-4 w-4" />
+            <div className="flex items-center justify-between mb-2">
+              <Label>Field Location *</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setUseMapLocation(!useMapLocation)}
+              >
+                {useMapLocation ? 'Use Text Input' : 'Use Map'}
               </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Click the location icon to use your current GPS location</p>
+            
+            {useMapLocation ? (
+              <MapLocationPicker
+                onLocationSelect={handleLocationSelect}
+                initialLocation={formData.fieldCoordinates.lat !== 0 ? formData.fieldCoordinates : undefined}
+              />
+            ) : (
+              <Input
+                value={formData.fieldLocation}
+                onChange={(e) => handleInputChange('fieldLocation', e.target.value)}
+                placeholder="Enter your field location"
+                required
+              />
+            )}
+            
+            {formData.fieldLocation && (
+              <p className="text-sm text-gray-600 mt-1">
+                Selected location: {formData.fieldLocation}
+              </p>
+            )}
           </div>
 
           <div>

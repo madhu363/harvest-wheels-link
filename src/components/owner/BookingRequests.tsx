@@ -20,6 +20,7 @@ interface BookingWithDetails {
   notes: string | null;
   created_at: string;
   farmer_name: string;
+  farmer_mobile: string;
   vehicle_name: string;
 }
 
@@ -43,7 +44,7 @@ export const BookingRequests: React.FC = () => {
         .from('bookings')
         .select(`
           *,
-          profiles!farmer_id(name),
+          profiles!farmer_id(name, mobile_number),
           vehicles!vehicle_id(name, owner_id)
         `)
         .eq('vehicles.owner_id', user.id)
@@ -66,6 +67,7 @@ export const BookingRequests: React.FC = () => {
         notes: booking.notes,
         created_at: booking.created_at,
         farmer_name: booking.profiles?.name || 'Unknown Farmer',
+        farmer_mobile: booking.profiles?.mobile_number || '',
         vehicle_name: booking.vehicles?.name || 'Unknown Vehicle'
       }));
 
@@ -82,18 +84,35 @@ export const BookingRequests: React.FC = () => {
     }
   };
 
-  const handleBookingAction = async (bookingId: string, action: 'accepted' | 'rejected') => {
+  const handleBookingAction = async (booking: BookingWithDetails, action: 'accepted' | 'rejected') => {
     try {
       const { error } = await supabase
         .from('bookings')
         .update({ status: action })
-        .eq('id', bookingId);
+        .eq('id', booking.id);
 
       if (error) throw error;
 
+      // Send SMS notification to farmer
+      if (booking.farmer_mobile) {
+        const statusMessage = action === 'accepted' ? 'accepted' : 'rejected';
+        const message = `Your booking request has been ${statusMessage}!\n\nVehicle: ${booking.vehicle_name}\nDate: ${booking.date} at ${booking.time}\nTask: ${booking.task}\nLocation: ${booking.field_location}\nAmount: $${booking.total_amount}${action === 'accepted' ? '\n\nPlease be ready at the scheduled time.' : ''}`;
+        
+        try {
+          await supabase.functions.invoke('send-sms', {
+            body: {
+              to: booking.farmer_mobile,
+              message: message
+            }
+          });
+        } catch (smsError) {
+          console.error('Failed to send SMS to farmer:', smsError);
+        }
+      }
+
       toast({
         title: `Booking ${action}`,
-        description: `You have ${action} the booking request.`,
+        description: `You have ${action} the booking request. The farmer has been notified via SMS.`,
         variant: action === 'accepted' ? 'default' : 'destructive',
       });
 
@@ -174,14 +193,14 @@ export const BookingRequests: React.FC = () => {
           
           <div className="flex space-x-3">
             <Button
-              onClick={() => handleBookingAction(booking.id, 'rejected')}
+              onClick={() => handleBookingAction(booking, 'rejected')}
               variant="outline"
               className="flex-1"
             >
               Reject
             </Button>
             <Button
-              onClick={() => handleBookingAction(booking.id, 'accepted')}
+              onClick={() => handleBookingAction(booking, 'accepted')}
               className="flex-1"
             >
               Accept
