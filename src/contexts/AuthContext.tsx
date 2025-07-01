@@ -1,17 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-interface Profile {
-  id: string;
-  email: string;
-  name: string;
-  role: 'farmer' | 'vehicle_owner' | 'admin';
-  phone?: string;
-  location?: string;
-}
+import { Profile } from '@/types';
 
 interface AuthContextType {
   user: (User & { role?: string }) | null;
