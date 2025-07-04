@@ -21,7 +21,16 @@ serve(async (req) => {
     const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')
     const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER')
 
+    console.log('Twilio Account SID:', TWILIO_ACCOUNT_SID ? 'Set' : 'Missing')
+    console.log('Twilio Auth Token:', TWILIO_AUTH_TOKEN ? 'Set' : 'Missing')  
+    console.log('Twilio Phone Number:', TWILIO_PHONE_NUMBER ? 'Set' : 'Missing')
+
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+      console.error('Missing Twilio configuration:', {
+        accountSid: !!TWILIO_ACCOUNT_SID,
+        authToken: !!TWILIO_AUTH_TOKEN, 
+        phoneNumber: !!TWILIO_PHONE_NUMBER
+      })
       throw new Error('Missing Twilio configuration')
     }
 
