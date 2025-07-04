@@ -17,9 +17,13 @@ serve(async (req) => {
     console.log('Sending SMS to:', to)
     console.log('Message:', message)
     
-    const TWILIO_ACCOUNT_SID = "AC7801cc4bb7987010ce99da9f8480629f"
-    const TWILIO_AUTH_TOKEN = "85297f860f698a88c28763a9dd7e9f83"
-    const TWILIO_PHONE_NUMBER = "+12678057539"
+    const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')
+    const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')
+    const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER')
+
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+      throw new Error('Missing Twilio configuration')
+    }
 
     // Ensure phone number is in correct format (with + prefix)
     const formattedTo = to.startsWith('+') ? to : `+${to}`
