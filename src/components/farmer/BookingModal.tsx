@@ -102,6 +102,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
         }
       }
 
+      // Send SMS confirmation to farmer
+      if (profile?.mobile_number) {
+        try {
+          await supabase.functions.invoke('send-sms', {
+            body: {
+              to: profile.mobile_number,
+              message: `Booking Confirmation!\n\nYour booking request for ${vehicle.name} has been submitted.\n\nDetails:\nDate: ${formData.date} at ${formData.time}\nTask: ${formData.task}\nLocation: ${formData.fieldLocation}\nDuration: ${formData.duration} hours\nAmount: $${vehicle.pricePerHour * formData.duration}\n\nYou will receive another SMS when the owner accepts or rejects your request.`
+            }
+          });
+        } catch (smsError) {
+          console.error('Failed to send SMS to farmer:', smsError);
+        }
+      }
+
       toast({
         title: "Booking Request Sent",
         description: "Your booking request has been sent to the vehicle owner. They will be notified via push notification.",
