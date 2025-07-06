@@ -84,9 +84,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
       if (error) throw error;
 
+      console.log('Booking created successfully, now sending notifications...');
+
       // Send push notification to vehicle owner
       if (vehicleOwner?.mobile_number) {
         try {
+          console.log('Sending push notification to vehicle owner...');
           await supabase.functions.invoke('send-notification', {
             body: {
               to: {
@@ -97,6 +100,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
               type: 'new_booking_request'
             }
           });
+          console.log('Push notification sent to vehicle owner successfully');
         } catch (notificationError) {
           console.error('Failed to send notification to vehicle owner:', notificationError);
         }
@@ -105,21 +109,45 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
       // Send SMS confirmation to farmer
       if (profile?.mobile_number) {
         try {
-          await supabase.functions.invoke('send-sms', {
+          console.log('Attempting to send SMS to farmer:', profile.mobile_number);
+          const smsResponse = await supabase.functions.invoke('send-sms', {
             body: {
               to: profile.mobile_number,
               message: `Booking Confirmation!\n\nYour booking request for ${vehicle.name} has been submitted.\n\nDetails:\nDate: ${formData.date} at ${formData.time}\nTask: ${formData.task}\nLocation: ${formData.fieldLocation}\nDuration: ${formData.duration} hours\nAmount: $${vehicle.pricePerHour * formData.duration}\n\nYou will receive another SMS when the owner accepts or rejects your request.`
             }
           });
+          
+          console.log('SMS function response:', smsResponse);
+          
+          if (smsResponse.error) {
+            console.error('SMS function returned error:', smsResponse.error);
+            toast({
+              title: "SMS Failed",
+              description: "Booking created but SMS confirmation failed. Please check your mobile number.",
+              variant: "destructive",
+            });
+          } else {
+            console.log('SMS sent successfully to farmer');
+            toast({
+              title: "Booking Request Sent",
+              description: "Your booking request has been sent and SMS confirmation has been sent to your mobile number.",
+            });
+          }
         } catch (smsError) {
           console.error('Failed to send SMS to farmer:', smsError);
+          toast({
+            title: "SMS Failed",
+            description: "Booking created but SMS confirmation failed. Please check your mobile number.",
+            variant: "destructive",
+          });
         }
+      } else {
+        console.log('No mobile number found for farmer, skipping SMS');
+        toast({
+          title: "Booking Request Sent",
+          description: "Your booking request has been sent to the vehicle owner.",
+        });
       }
-
-      toast({
-        title: "Booking Request Sent",
-        description: "Your booking request has been sent to the vehicle owner. They will be notified via push notification.",
-      });
 
       onClose();
       
