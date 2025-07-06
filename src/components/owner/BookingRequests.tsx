@@ -93,26 +93,37 @@ export const BookingRequests: React.FC = () => {
 
       if (error) throw error;
 
-      // Send SMS notification to farmer
+      // Send push notification to farmer
       if (booking.farmer_mobile) {
         const statusMessage = action === 'accepted' ? 'accepted' : 'rejected';
         const message = `Your booking request has been ${statusMessage}!\n\nVehicle: ${booking.vehicle_name}\nDate: ${booking.date} at ${booking.time}\nTask: ${booking.task}\nLocation: ${booking.field_location}\nAmount: $${booking.total_amount}${action === 'accepted' ? '\n\nPlease be ready at the scheduled time.' : ''}`;
         
         try {
-          await supabase.functions.invoke('send-sms', {
+          // Get farmer profile for email
+          const { data: farmerProfile } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', booking.farmer_id)
+            .single();
+
+          await supabase.functions.invoke('send-notification', {
             body: {
-              to: booking.farmer_mobile,
-              message: message
+              to: {
+                email: farmerProfile?.email || '',
+                phone: booking.farmer_mobile
+              },
+              message: message,
+              type: 'booking_status_update'
             }
           });
-        } catch (smsError) {
-          console.error('Failed to send SMS to farmer:', smsError);
+        } catch (notificationError) {
+          console.error('Failed to send notification to farmer:', notificationError);
         }
       }
 
       toast({
         title: `Booking ${action}`,
-        description: `You have ${action} the booking request. The farmer has been notified via SMS.`,
+        description: `You have ${action} the booking request. The farmer has been notified via push notification.`,
         variant: action === 'accepted' ? 'default' : 'destructive',
       });
 

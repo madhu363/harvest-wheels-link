@@ -58,10 +58,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
     setIsLoading(true);
     try {
-      // Get vehicle owner details for SMS notification
+      // Get vehicle owner details for notification
       const { data: vehicleOwner } = await supabase
         .from('profiles')
-        .select('mobile_number, name')
+        .select('mobile_number, name, email')
         .eq('id', vehicle.ownerId)
         .single();
 
@@ -84,23 +84,27 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
       if (error) throw error;
 
-      // Send SMS notification to vehicle owner
+      // Send push notification to vehicle owner
       if (vehicleOwner?.mobile_number) {
         try {
-          await supabase.functions.invoke('send-sms', {
+          await supabase.functions.invoke('send-notification', {
             body: {
-              to: vehicleOwner.mobile_number,
-              message: `New booking request for ${vehicle.name}!\n\nFarmer: ${profile?.name}\nTask: ${formData.task}\nDate: ${formData.date} at ${formData.time}\nLocation: ${formData.fieldLocation}\nDuration: ${formData.duration} hours\nAmount: $${vehicle.pricePerHour * formData.duration}\n\nPlease check your dashboard to accept or reject this request.`
+              to: {
+                email: vehicleOwner.email,
+                phone: vehicleOwner.mobile_number
+              },
+              message: `New booking request for ${vehicle.name}!\n\nFarmer: ${profile?.name}\nTask: ${formData.task}\nDate: ${formData.date} at ${formData.time}\nLocation: ${formData.fieldLocation}\nDuration: ${formData.duration} hours\nAmount: $${vehicle.pricePerHour * formData.duration}\n\nPlease check your dashboard to accept or reject this request.`,
+              type: 'new_booking_request'
             }
           });
-        } catch (smsError) {
-          console.error('Failed to send SMS to vehicle owner:', smsError);
+        } catch (notificationError) {
+          console.error('Failed to send notification to vehicle owner:', notificationError);
         }
       }
 
       toast({
         title: "Booking Request Sent",
-        description: "Your booking request has been sent to the vehicle owner. They will be notified via SMS.",
+        description: "Your booking request has been sent to the vehicle owner. They will be notified via push notification.",
       });
 
       onClose();
