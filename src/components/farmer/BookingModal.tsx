@@ -86,8 +86,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
 
       console.log('Booking created successfully, now sending notifications...');
 
-      // Send push notification to vehicle owner
+      // Send notifications to vehicle owner
       if (vehicleOwner?.mobile_number) {
+        const ownerMessage = `New booking request for ${vehicle.name}!\n\nFarmer: ${profile?.name}\nTask: ${formData.task}\nDate: ${formData.date} at ${formData.time}\nLocation: ${formData.fieldLocation}\nDuration: ${formData.duration} hours\nAmount: $${vehicle.pricePerHour * formData.duration}\n\nPlease check your dashboard to accept or reject this request.`;
+        
         try {
           console.log('Sending push notification to vehicle owner...');
           await supabase.functions.invoke('send-notification', {
@@ -96,13 +98,32 @@ export const BookingModal: React.FC<BookingModalProps> = ({ vehicle, isOpen, onC
                 email: vehicleOwner.email,
                 phone: vehicleOwner.mobile_number
               },
-              message: `New booking request for ${vehicle.name}!\n\nFarmer: ${profile?.name}\nTask: ${formData.task}\nDate: ${formData.date} at ${formData.time}\nLocation: ${formData.fieldLocation}\nDuration: ${formData.duration} hours\nAmount: $${vehicle.pricePerHour * formData.duration}\n\nPlease check your dashboard to accept or reject this request.`,
+              message: ownerMessage,
               type: 'new_booking_request'
             }
           });
           console.log('Push notification sent to vehicle owner successfully');
         } catch (notificationError) {
           console.error('Failed to send notification to vehicle owner:', notificationError);
+        }
+
+        // Send SMS to vehicle owner
+        try {
+          console.log('Sending SMS to vehicle owner:', vehicleOwner.mobile_number);
+          const smsResponse = await supabase.functions.invoke('send-sms', {
+            body: {
+              to: vehicleOwner.mobile_number,
+              message: ownerMessage
+            }
+          });
+
+          if (smsResponse.error) {
+            console.error('SMS function returned error for owner:', smsResponse.error);
+          } else {
+            console.log('SMS sent successfully to vehicle owner');
+          }
+        } catch (smsError) {
+          console.error('Failed to send SMS to vehicle owner:', smsError);
         }
       }
 

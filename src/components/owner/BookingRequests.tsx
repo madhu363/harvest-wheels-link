@@ -118,17 +118,17 @@ export const BookingRequests: React.FC = () => {
             }
           });
 
-          // Send SMS notification
+          // Send SMS notification to farmer
           console.log('Sending SMS to farmer:', booking.farmer_mobile);
-          const smsResponse = await supabase.functions.invoke('send-sms', {
+          const farmerSmsResponse = await supabase.functions.invoke('send-sms', {
             body: {
               to: booking.farmer_mobile,
               message: message
             }
           });
 
-          if (smsResponse.error) {
-            console.error('SMS function returned error:', smsResponse.error);
+          if (farmerSmsResponse.error) {
+            console.error('SMS function returned error for farmer:', farmerSmsResponse.error);
           } else {
             console.log('SMS sent successfully to farmer');
           }
