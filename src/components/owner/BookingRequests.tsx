@@ -53,7 +53,7 @@ export const BookingRequests: React.FC = () => {
 
       if (error) throw error;
 
-      const formattedBookings: BookingWithDetails[] = data.map(booking => ({
+        const formattedBookings: BookingWithDetails[] = data.map(booking => ({
         id: booking.id,
         farmer_id: booking.farmer_id,
         vehicle_id: booking.vehicle_id,
@@ -70,6 +70,12 @@ export const BookingRequests: React.FC = () => {
         farmer_mobile: booking.profiles?.mobile_number || '',
         vehicle_name: booking.vehicles?.name || 'Unknown Vehicle'
       }));
+
+      console.log('Formatted bookings with farmer mobile numbers:', formattedBookings.map(b => ({ 
+        id: b.id, 
+        farmer_name: b.farmer_name, 
+        farmer_mobile: b.farmer_mobile 
+      })));
 
       setBookings(formattedBookings);
     } catch (error) {
@@ -93,32 +99,14 @@ export const BookingRequests: React.FC = () => {
 
       if (error) throw error;
 
-      // Send notifications to farmer
+      // Send SMS notification to farmer
+      console.log('Checking farmer mobile number for booking:', booking.id, 'Mobile:', booking.farmer_mobile);
+      
       if (booking.farmer_mobile) {
         const statusMessage = action === 'accepted' ? 'accepted' : 'rejected';
         const message = `Your booking request has been ${statusMessage}!\n\nVehicle: ${booking.vehicle_name}\nDate: ${booking.date} at ${booking.time}\nTask: ${booking.task}\nLocation: ${booking.field_location}\nAmount: $${booking.total_amount}${action === 'accepted' ? '\n\nPlease be ready at the scheduled time.' : ''}`;
         
         try {
-          // Get farmer profile for email
-          const { data: farmerProfile } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('id', booking.farmer_id)
-            .single();
-
-          // Send push notification
-          await supabase.functions.invoke('send-notification', {
-            body: {
-              to: {
-                email: farmerProfile?.email || '',
-                phone: booking.farmer_mobile
-              },
-              message: message,
-              type: 'booking_status_update'
-            }
-          });
-
-          // Send SMS notification to farmer
           console.log('Sending SMS to farmer:', booking.farmer_mobile);
           const farmerSmsResponse = await supabase.functions.invoke('send-sms', {
             body: {
@@ -127,14 +115,18 @@ export const BookingRequests: React.FC = () => {
             }
           });
 
+          console.log('Farmer SMS function response:', farmerSmsResponse);
+
           if (farmerSmsResponse.error) {
             console.error('SMS function returned error for farmer:', farmerSmsResponse.error);
           } else {
             console.log('SMS sent successfully to farmer');
           }
-        } catch (notificationError) {
-          console.error('Failed to send notification to farmer:', notificationError);
+        } catch (smsError) {
+          console.error('Failed to send SMS to farmer:', smsError);
         }
+      } else {
+        console.log('No mobile number found for farmer. Booking farmer_id:', booking.farmer_id);
       }
 
       toast({
