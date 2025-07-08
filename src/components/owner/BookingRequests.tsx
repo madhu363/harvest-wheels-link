@@ -93,7 +93,7 @@ export const BookingRequests: React.FC = () => {
 
       if (error) throw error;
 
-      // Send push notification to farmer
+      // Send notifications to farmer
       if (booking.farmer_mobile) {
         const statusMessage = action === 'accepted' ? 'accepted' : 'rejected';
         const message = `Your booking request has been ${statusMessage}!\n\nVehicle: ${booking.vehicle_name}\nDate: ${booking.date} at ${booking.time}\nTask: ${booking.task}\nLocation: ${booking.field_location}\nAmount: $${booking.total_amount}${action === 'accepted' ? '\n\nPlease be ready at the scheduled time.' : ''}`;
@@ -106,6 +106,7 @@ export const BookingRequests: React.FC = () => {
             .eq('id', booking.farmer_id)
             .single();
 
+          // Send push notification
           await supabase.functions.invoke('send-notification', {
             body: {
               to: {
@@ -116,6 +117,21 @@ export const BookingRequests: React.FC = () => {
               type: 'booking_status_update'
             }
           });
+
+          // Send SMS notification
+          console.log('Sending SMS to farmer:', booking.farmer_mobile);
+          const smsResponse = await supabase.functions.invoke('send-sms', {
+            body: {
+              to: booking.farmer_mobile,
+              message: message
+            }
+          });
+
+          if (smsResponse.error) {
+            console.error('SMS function returned error:', smsResponse.error);
+          } else {
+            console.log('SMS sent successfully to farmer');
+          }
         } catch (notificationError) {
           console.error('Failed to send notification to farmer:', notificationError);
         }
