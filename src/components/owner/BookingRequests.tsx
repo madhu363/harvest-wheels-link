@@ -131,7 +131,7 @@ export const BookingRequests: React.FC = () => {
 
       toast({
         title: `Booking ${action}`,
-        description: `You have ${action} the booking request. The farmer has been notified via push notification.`,
+        description: `You have ${action} the booking request. The farmer has been notified via SMS.`,
         variant: action === 'accepted' ? 'default' : 'destructive',
       });
 
