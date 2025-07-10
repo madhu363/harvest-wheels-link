@@ -40,16 +40,20 @@ export const BookingRequests: React.FC = () => {
     if (!user) return;
 
     try {
+      console.log('Fetching booking requests for owner:', user.id);
+      
       const { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
-          profiles!farmer_id(name, mobile_number),
-          vehicles!vehicle_id(name, owner_id)
+          farmer_profile:profiles!farmer_id(name, mobile_number),
+          vehicle_info:vehicles!vehicle_id(name, owner_id)
         `)
-        .eq('vehicles.owner_id', user.id)
+        .eq('vehicle_info.owner_id', user.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
+
+      console.log('Raw booking data from database:', data);
 
       if (error) throw error;
 
@@ -66,9 +70,9 @@ export const BookingRequests: React.FC = () => {
         total_amount: Number(booking.total_amount),
         notes: booking.notes,
         created_at: booking.created_at,
-        farmer_name: booking.profiles?.name || 'Unknown Farmer',
-        farmer_mobile: booking.profiles?.mobile_number || '',
-        vehicle_name: booking.vehicles?.name || 'Unknown Vehicle'
+        farmer_name: booking.farmer_profile?.name || 'Unknown Farmer',
+        farmer_mobile: booking.farmer_profile?.mobile_number || '',
+        vehicle_name: booking.vehicle_info?.name || 'Unknown Vehicle'
       }));
 
       console.log('Formatted bookings with farmer mobile numbers:', formattedBookings.map(b => ({ 
