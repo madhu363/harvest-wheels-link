@@ -152,81 +152,129 @@ export const BookingRequests: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <div className="text-gray-500">Loading booking requests...</div>
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+        <p className="text-muted-foreground">Loading booking requests...</p>
       </div>
     );
   }
 
   if (bookings.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">No pending booking requests.</p>
+      <div className="text-center py-12">
+        <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+          <Calendar className="h-12 w-12 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground mb-2">No Pending Requests</h3>
+        <p className="text-muted-foreground">You don't have any pending booking requests at the moment.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900">Pending Booking Requests</h3>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-2xl font-bold text-foreground">Pending Booking Requests</h3>
+        <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+          {bookings.length} Request{bookings.length !== 1 ? 's' : ''}
+        </div>
+      </div>
       
       {bookings.map((booking) => (
-        <div key={booking.id} className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900">{booking.vehicle_name}</h4>
-              <div className="flex items-center text-sm text-gray-600 mt-1">
-                <User className="h-4 w-4 mr-1" />
-                Requested by: {booking.farmer_name}
+        <div key={booking.id} className="bg-card rounded-xl shadow-lg border border-border p-6 hover:shadow-xl transition-shadow">
+          <div className="flex justify-between items-start mb-6">
+            <div className="space-y-2">
+              <h4 className="text-xl font-bold text-foreground">{booking.vehicle_name}</h4>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <User className="h-4 w-4 mr-2" />
+                <span className="font-medium">Requested by:</span>
+                <span className="ml-1 text-foreground font-semibold">{booking.farmer_name}</span>
               </div>
             </div>
-            <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
-              PENDING
-            </span>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-4">
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 mr-1" />
-              {booking.date}
-            </div>
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-1" />
-              {booking.time} ({booking.duration}h)
-            </div>
-            <div className="flex items-center">
-              <MapPin className="h-4 w-4 mr-1" />
-              {booking.field_location}
-            </div>
-            <div className="flex items-center">
-              <DollarSign className="h-4 w-4 mr-1" />
-              ${booking.total_amount}
+            <div className="flex flex-col items-end space-y-2">
+              <span className="px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded-full text-sm font-semibold border border-amber-200 dark:border-amber-800">
+                PENDING APPROVAL
+              </span>
+              <span className="text-2xl font-bold text-primary">${booking.total_amount}</span>
             </div>
           </div>
           
-          <div className="mb-4 p-3 bg-gray-50 rounded">
-            <p className="text-sm text-gray-600"><strong>Task:</strong> {booking.task}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <Calendar className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Date</p>
+                <p className="text-sm font-semibold text-foreground">{booking.date}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <Clock className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Time & Duration</p>
+                <p className="text-sm font-semibold text-foreground">{booking.time} ({booking.duration}h)</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+              <div className="p-2 bg-primary/10 rounded-full">
+                <MapPin className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Location</p>
+                <p className="text-sm font-semibold text-foreground truncate">{booking.field_location}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3 p-3 bg-primary/10 rounded-lg">
+              <div className="p-2 bg-primary/20 rounded-full">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-primary/80 font-medium">Total Amount</p>
+                <p className="text-lg font-bold text-primary">${booking.total_amount}</p>
+              </div>
+            </div>
           </div>
           
-          {booking.notes && (
-            <div className="mb-4 p-3 bg-gray-50 rounded">
-              <p className="text-sm text-gray-600"><strong>Notes:</strong> {booking.notes}</p>
+          <div className="space-y-4 mb-6">
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="p-1 bg-blue-500 rounded">
+                  <span className="text-xs text-white font-bold">TASK</span>
+                </div>
+              </div>
+              <p className="text-blue-900 dark:text-blue-100 font-semibold capitalize">{booking.task}</p>
             </div>
-          )}
+            
+            {booking.notes && (
+              <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="p-1 bg-amber-500 rounded">
+                    <span className="text-xs text-white font-bold">NOTES</span>
+                  </div>
+                </div>
+                <p className="text-amber-900 dark:text-amber-100">{booking.notes}</p>
+              </div>
+            )}
+          </div>
           
-          <div className="flex space-x-3">
+          <div className="flex space-x-4">
             <Button
               onClick={() => handleBookingAction(booking, 'rejected')}
-              variant="outline"
-              className="flex-1"
+              variant="destructive"
+              size="lg"
+              className="flex-1 h-12 font-semibold"
             >
-              Reject
+              Reject Request
             </Button>
             <Button
               onClick={() => handleBookingAction(booking, 'accepted')}
-              className="flex-1"
+              size="lg"
+              className="flex-1 h-12 font-semibold bg-green-600 hover:bg-green-700 text-white"
             >
-              Accept
+              Accept Request
             </Button>
           </div>
         </div>
